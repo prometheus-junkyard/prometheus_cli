@@ -14,13 +14,25 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/prometheus/client_golang/model"
 )
 
 // Type for unserializing a generic Prometheus query response.
-type QueryResponse struct {
+type StubQueryResponse struct {
 	Type  string      `json:"Type"`
 	Value interface{} `json:"Value"`
+}
+
+// Interface for query results of various result types.
+type QueryResponse interface {
+	ToText() string
+	ToCSV(delim rune) string
 }
 
 // Type for unserializing a scalar-typed Prometheus query response.
@@ -46,4 +58,76 @@ type MatrixQueryResponse struct {
 			Timestamp int64  `json:"Timestamp"`
 		}
 	} `json:"Value"`
+}
+
+func (r ScalarQueryResponse) ToText() string {
+	return fmt.Sprint(r.Value)
+}
+
+func formatCSV(rows [][]string, delim rune) string {
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	w.Comma = delim
+	for _, row := range rows {
+		w.Write(row)
+		if err := w.Error(); err != nil {
+			panic("error formatting CSV")
+		}
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		panic("error dumping CSV")
+	}
+	return buf.String()
+}
+
+func (r ScalarQueryResponse) ToCSV(delim rune) string {
+	return formatCSV([][]string{{r.Value}}, delim)
+}
+
+func (r VectorQueryResponse) ToText() string {
+	lines := make([]string, 0, len(r.Value))
+	for _, v := range r.Value {
+		lines = append(lines, fmt.Sprintf("%s %s@%d", v.Metric, v.Value, v.Timestamp))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (r VectorQueryResponse) ToCSV(delim rune) string {
+	rows := make([][]string, 0, len(r.Value))
+	for _, v := range r.Value {
+		rows = append(rows, []string{
+			v.Metric.String(),
+			v.Value,
+			strconv.FormatInt(v.Timestamp, 10),
+		})
+	}
+	return formatCSV(rows, delim)
+}
+
+func (r MatrixQueryResponse) ToText() string {
+	lines := make([]string, 0, len(r.Value))
+	for _, v := range r.Value {
+		vals := make([]string, 0, len(v.Values))
+		for _, s := range v.Values {
+			vals = append(vals, fmt.Sprintf("%s@%d ", s.Value, s.Timestamp))
+		}
+		lines = append(lines, fmt.Sprintf("%s %s", v.Metric, strings.Join(vals, " ")))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (r MatrixQueryResponse) ToCSV(delim rune) string {
+	rows := make([][]string, 0, len(r.Value))
+	for _, v := range r.Value {
+		vals := make([]string, 0, len(v.Values))
+		for _, s := range v.Values {
+			vals = append(vals, fmt.Sprintf("%s@%d", s.Value, s.Timestamp))
+		}
+		rows = append(rows, []string{
+			v.Metric.String(),
+			strings.Join(vals, " "),
+		})
+	}
+	return formatCSV(rows, delim)
 }

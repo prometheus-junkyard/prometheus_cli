@@ -22,14 +22,24 @@ import (
 )
 
 var (
-	server  = flag.String("server", "", "URL of the Prometheus server to query")
-	timeout = flag.Duration("timeout", time.Minute, "Timeout to use when querying the Prometheus server")
+	server   = flag.String("server", "", "URL of the Prometheus server to query")
+	timeout  = flag.Duration("timeout", time.Minute, "Timeout to use when querying the Prometheus server")
+	useCSV   = flag.Bool("csv", true, "Whether to format output as CSV")
+	csvDelim = flag.String("csvDelimiter", ";", "Single-character delimiter to use in CSV output")
 )
 
 func die(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
 	fmt.Fprintln(os.Stderr, "")
 	os.Exit(1)
+}
+
+func printQueryResponse(r QueryResponse) {
+	if *useCSV {
+		fmt.Print(r.ToCSV(rune((*csvDelim)[0])))
+	} else {
+		fmt.Print(r.ToText())
+	}
 }
 
 func query(c *Client) {
@@ -43,24 +53,7 @@ func query(c *Client) {
 		die("Error querying server: %s", err)
 	}
 
-	switch resp.(type) {
-	case *ScalarQueryResponse:
-		fmt.Println(resp.(*ScalarQueryResponse).Value)
-	case *VectorQueryResponse:
-		for _, v := range resp.(*VectorQueryResponse).Value {
-			fmt.Printf("%s %s@%d\n", v.Metric, v.Value, v.Timestamp)
-		}
-	case *MatrixQueryResponse:
-		for _, v := range resp.(*MatrixQueryResponse).Value {
-			fmt.Printf("%s ", v.Metric)
-			for _, s := range v.Values {
-				fmt.Printf("%s@%d ", s.Value, s.Timestamp)
-			}
-			fmt.Println("")
-		}
-	default:
-		die("Unknown query response type")
-	}
+	printQueryResponse(resp)
 }
 
 func queryRange(c *Client) {
@@ -97,13 +90,7 @@ func queryRange(c *Client) {
 		die("Error querying server: %s", err)
 	}
 
-	for _, v := range resp.Value {
-		fmt.Printf("%s ", v.Metric)
-		for _, s := range v.Values {
-			fmt.Printf("%s@%d ", s.Value, s.Timestamp)
-		}
-		fmt.Println("")
-	}
+	printQueryResponse(resp)
 }
 
 func metrics(c *Client) {
@@ -141,6 +128,10 @@ func main() {
 	if flag.NArg() < 1 {
 		flag.Usage()
 		die("Please provide a command.")
+	}
+	if len(*csvDelim) != 1 {
+		flag.Usage()
+		die("CSV delimiter may be a single character only")
 	}
 
 	c := NewClient(*server, *timeout)

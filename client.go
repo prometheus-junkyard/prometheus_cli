@@ -69,7 +69,7 @@ func NewClient(url string, timeout time.Duration) *Client {
 }
 
 // Query performs an instant expression query via the Prometheus API.
-func (c *Client) Query(expr string) (interface{}, error) {
+func (c *Client) Query(expr string) (QueryResponse, error) {
 	u, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, err
@@ -92,12 +92,12 @@ func (c *Client) Query(expr string) (interface{}, error) {
 		return nil, err
 	}
 
-	var r QueryResponse
+	var r StubQueryResponse
 	if err := json.Unmarshal(buf, &r); err != nil {
 		return nil, err
 	}
 
-	var typedResp interface{}
+	var typedResp QueryResponse
 	switch r.Type {
 	case errorType:
 		return nil, fmt.Errorf("query error: %s", r.Value.(string))
@@ -144,7 +144,7 @@ func (c *Client) QueryRange(expr string, end uint64, rangeSec uint64, step uint6
 		return nil, err
 	}
 
-	var r QueryResponse
+	var r StubQueryResponse
 	if err := json.Unmarshal(buf, &r); err != nil {
 		return nil, err
 	}
