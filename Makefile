@@ -1,4 +1,4 @@
-VERSION  := 0.1.0
+VERSION  := 0.2.0
 
 SRC      := $(wildcard *.go)
 TARGET   := prometheus_cli
@@ -8,7 +8,7 @@ ARCH := $(subst x86_64,amd64,$(shell uname -m))
 
 GOOS   ?= $(OS)
 GOARCH ?= $(ARCH)
-GOPKG  := go1.1.2.$(OS)-$(ARCH).tar.gz
+GOPKG  := go1.3.$(OS)-$(ARCH).tar.gz
 GOROOT ?= $(CURDIR)/.deps/go
 GOPATH ?= $(CURDIR)/.deps/gopath
 GOCC   := $(GOROOT)/bin/go
@@ -25,7 +25,7 @@ build: $(BINARY)
 
 .deps/$(GOPKG):
 	mkdir -p .deps
-	curl -o .deps/$(GOPKG) http://go.googlecode.com/files/$(GOPKG)
+	curl -L -o .deps/$(GOPKG) http://golang.org/dl/$(GOPKG)
 
 $(GOCC): .deps/$(GOPKG)
 	tar -C .deps -xzf .deps/$(GOPKG)
