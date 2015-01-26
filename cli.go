@@ -61,7 +61,7 @@ func queryRange(c *Client) {
 		flag.Usage()
 		die("Wrong number of range query arguments")
 	}
-	end, err := strconv.ParseUint(flag.Arg(2), 10, 64)
+	end, err := strconv.ParseFloat(flag.Arg(2), 64)
 	if err != nil {
 		flag.Usage()
 		die("Invalid end timestamp '%s'", flag.Arg(2))

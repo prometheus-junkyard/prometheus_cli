@@ -23,41 +23,39 @@ import (
 	"github.com/prometheus/client_golang/model"
 )
 
-// Type for unserializing a generic Prometheus query response.
-type StubQueryResponse struct {
-	Type  string      `json:"Type"`
-	Value interface{} `json:"Value"`
-}
-
 // Interface for query results of various result types.
 type QueryResponse interface {
 	ToText() string
 	ToCSV(delim rune) string
 }
 
+// Type for unserializing a generic Prometheus query response.
+type StubQueryResponse struct {
+	Type    string      `json:"type"`
+	Value   interface{} `json:"value"`
+	Version int         `json:"version"`
+}
+
 // Type for unserializing a scalar-typed Prometheus query response.
 type ScalarQueryResponse struct {
-	Value string `json:"Value"`
+	Value string `json:"value"`
 }
 
 // Type for unserializing a vector-typed Prometheus query response.
 type VectorQueryResponse struct {
 	Value []struct {
-		Metric    model.Metric `json:"Metric"`
-		Value     string       `json:"Value"`
-		Timestamp int64        `json:"Timestamp"`
-	} `json:"Value"`
+		Metric    model.Metric `json:"metric"`
+		Value     string       `json:"value"`
+		Timestamp float64      `json:"timestamp"`
+	} `json:"value"`
 }
 
 // Type for unserializing a matrix-typed Prometheus query response.
 type MatrixQueryResponse struct {
 	Value []struct {
-		Metric model.Metric `json:"Metric"`
-		Values []struct {
-			Value     string `json:"Value"`
-			Timestamp int64  `json:"Timestamp"`
-		}
-	} `json:"Value"`
+		Metric model.Metric `json:"metric"`
+		Values [][]interface{}
+	} `json:"value"`
 }
 
 func (r ScalarQueryResponse) ToText() string {
@@ -88,9 +86,9 @@ func (r ScalarQueryResponse) ToCSV(delim rune) string {
 func (r VectorQueryResponse) ToText() string {
 	lines := make([]string, 0, len(r.Value))
 	for _, v := range r.Value {
-		lines = append(lines, fmt.Sprintf("%s %s@%d", v.Metric, v.Value, v.Timestamp))
+		lines = append(lines, fmt.Sprintf("%s %s@%.3f\n", v.Metric, v.Value, v.Timestamp))
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "")
 }
 
 func (r VectorQueryResponse) ToCSV(delim rune) string {
@@ -99,7 +97,7 @@ func (r VectorQueryResponse) ToCSV(delim rune) string {
 		rows = append(rows, []string{
 			v.Metric.String(),
 			v.Value,
-			strconv.FormatInt(v.Timestamp, 10),
+			strconv.FormatFloat(v.Timestamp, 'f', -1, 64),
 		})
 	}
 	return formatCSV(rows, delim)
@@ -110,11 +108,11 @@ func (r MatrixQueryResponse) ToText() string {
 	for _, v := range r.Value {
 		vals := make([]string, 0, len(v.Values))
 		for _, s := range v.Values {
-			vals = append(vals, fmt.Sprintf("%s@%d ", s.Value, s.Timestamp))
+			vals = append(vals, fmt.Sprintf("%s@%.3f ", s[1], s[0]))
 		}
-		lines = append(lines, fmt.Sprintf("%s %s", v.Metric, strings.Join(vals, " ")))
+		lines = append(lines, fmt.Sprintf("%s %s\n", v.Metric, strings.Join(vals, " ")))
 	}
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "")
 }
 
 func (r MatrixQueryResponse) ToCSV(delim rune) string {
@@ -122,7 +120,7 @@ func (r MatrixQueryResponse) ToCSV(delim rune) string {
 	for _, v := range r.Value {
 		vals := make([]string, 0, len(v.Values))
 		for _, s := range v.Values {
-			vals = append(vals, fmt.Sprintf("%s@%d", s.Value, s.Timestamp))
+			vals = append(vals, fmt.Sprintf("%s@%.3f", s[1], s[0]))
 		}
 		rows = append(rows, []string{
 			v.Metric.String(),
