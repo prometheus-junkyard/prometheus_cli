@@ -25,7 +25,7 @@ build: $(BINARY)
 
 .deps/$(GOPKG):
 	mkdir -p .deps
-	curl -L -o .deps/$(GOPKG) http://golang.org/dl/$(GOPKG)
+	curl -L -o .deps/$(GOPKG) https://golang.org/dl/$(GOPKG)
 
 $(GOCC): .deps/$(GOPKG)
 	tar -C .deps -xzf .deps/$(GOPKG)
