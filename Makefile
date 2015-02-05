@@ -3,8 +3,8 @@ VERSION  := 0.2.0
 SRC      := $(wildcard *.go)
 TARGET   := prometheus_cli
 
-OS   := $(subst Darwin,darwin,$(subst Linux,linux,$(shell uname)))
-ARCH := $(subst x86_64,amd64,$(shell uname -m))
+OS   := $(subst Darwin,darwin,$(subst Linux,linux,$(subst FreeBSD,freebsd,$(shell uname))))
+ARCH := $(subst x86_64,amd64,$(patsubst i%86,386,$(shell uname -m)))
 
 GOOS   ?= $(OS)
 GOARCH ?= $(ARCH)
@@ -25,7 +25,7 @@ build: $(BINARY)
 
 .deps/$(GOPKG):
 	mkdir -p .deps
-	curl -L -o .deps/$(GOPKG) http://golang.org/dl/$(GOPKG)
+	curl -L -o .deps/$(GOPKG) https://golang.org/dl/$(GOPKG)
 
 $(GOCC): .deps/$(GOPKG)
 	tar -C .deps -xzf .deps/$(GOPKG)
