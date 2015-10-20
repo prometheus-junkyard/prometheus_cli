@@ -1,1 +1,3 @@
 prometheus_cli
+.deps
+*.tar.gz

@@ -96,6 +96,9 @@ func (c *Client) Query(expr string) (QueryResponse, error) {
 	if err := json.Unmarshal(buf, &r); err != nil {
 		return nil, err
 	}
+	if r.Version != 1 {
+		return nil, fmt.Errorf("unsupported JSON format version %d", r.Version)
+	}
 
 	var typedResp QueryResponse
 	switch r.Type {
@@ -118,7 +121,7 @@ func (c *Client) Query(expr string) (QueryResponse, error) {
 }
 
 // QueryRange performs an range expression query via the Prometheus API.
-func (c *Client) QueryRange(expr string, end uint64, rangeSec uint64, step uint64) (*MatrixQueryResponse, error) {
+func (c *Client) QueryRange(expr string, end float64, rangeSec uint64, step uint64) (*MatrixQueryResponse, error) {
 	u, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return nil, err
@@ -128,7 +131,7 @@ func (c *Client) QueryRange(expr string, end uint64, rangeSec uint64, step uint6
 	q := u.Query()
 
 	q.Set("expr", expr)
-	q.Set("end", fmt.Sprintf("%d", end))
+	q.Set("end", fmt.Sprintf("%f", end))
 	q.Set("range", fmt.Sprintf("%d", rangeSec))
 	q.Set("step", fmt.Sprintf("%d", step))
 	u.RawQuery = q.Encode()
@@ -147,6 +150,9 @@ func (c *Client) QueryRange(expr string, end uint64, rangeSec uint64, step uint6
 	var r StubQueryResponse
 	if err := json.Unmarshal(buf, &r); err != nil {
 		return nil, err
+	}
+	if r.Version != 1 {
+		return nil, fmt.Errorf("unsupported JSON format version %d", r.Version)
 	}
 
 	switch r.Type {
