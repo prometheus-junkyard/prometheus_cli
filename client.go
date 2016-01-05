@@ -26,6 +26,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -75,7 +76,7 @@ func (c *Client) Query(expr string) (QueryResponse, error) {
 		return nil, err
 	}
 
-	u.Path = queryPath
+	u.Path = strings.TrimRight(u.Path, "/") + queryPath
 	q := u.Query()
 
 	q.Set("expr", expr)
@@ -127,7 +128,7 @@ func (c *Client) QueryRange(expr string, end float64, rangeSec uint64, step uint
 		return nil, err
 	}
 
-	u.Path = queryRangePath
+	u.Path = strings.TrimRight(u.Path, "/") + queryRangePath
 	q := u.Query()
 
 	q.Set("expr", expr)
@@ -176,7 +177,7 @@ func (c *Client) Metrics() ([]string, error) {
 		return nil, err
 	}
 
-	u.Path = metricsPath
+	u.Path = strings.TrimRight(u.Path, "/") + metricsPath
 
 	resp, err := c.httpClient.Get(u.String())
 	if err != nil {
